@@ -5,15 +5,11 @@ import matplotlib.pyplot as plt
 import networkx.algorithms.clique as cl
 
 
-n  = 5
-p = 0.4 # ile zostawić
-
+# p jaki ułamek krawędzi chcę zachować
 def generateGraph(n,p):
     g = nx.Graph()
-
     for i in range(n):
         g.add_node(i)
-
     for i in range(n):
         for j in range(n):
             g.add_edge(i,j)
@@ -32,12 +28,13 @@ def max_clique(g):
     return max_clique_graph
 
 
+if __name__ == '__main__':
 
-# g = generateGraph(n,p)
-# nx.draw(g,node_size=900, with_labels=True)
-# plt.show()
-#
-# g_max = max_clique(g)
-# nx.draw(g_max,node_size=900, with_labels=True)
-# plt.show()
+    g = generateGraph(15,0.3)
+    nx.draw(g,node_size=900, with_labels=True)
+    plt.show()
+
+    g_max = max_clique(g)
+    nx.draw(g_max,node_size=900, with_labels=True)
+    plt.show()
 
