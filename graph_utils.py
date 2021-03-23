@@ -32,6 +32,7 @@ def max_clique(g):
     return max_clique_graph
 
 
+
 # g = generateGraph(n,p)
 # nx.draw(g,node_size=900, with_labels=True)
 # plt.show()
