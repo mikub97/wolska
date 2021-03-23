@@ -108,7 +108,6 @@ class GeneticAlgorithm():
             self.population2 = self.mutate(self.population2)
             (best_index,best_val,eval_res) = self.evaluate(self.population2)
             self.population = self.population2
-            t=t+1
 
 
     # Funkcja, która zwraca liste node'ów należących do danego rozwiązania
