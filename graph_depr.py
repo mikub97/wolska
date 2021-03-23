@@ -23,6 +23,12 @@ class Graph(object):
         print("Graph has ",np.sum(self.graph)-n, "edges (without the diagonal)")
         print(self.graph)
 
+    #upper triangle goes down
+    def mirror_diagonal(self):
+        for i in range(n):
+            for j in range(i):
+                self.graph[i][j] = self.graph[j][i]
+
     def __init__(self,n=10,p=0.7):
         self.vertices_no=n
         self.vertices = list(range(n))
@@ -35,10 +41,9 @@ class Graph(object):
             for j in range(i):
                 row.insert(0,0)
             self.graph.append(row)
+
         print(np.matrix(self.graph))
-        for i in range(n):
-            for j in range(i):
-                self.graph[i][j] = self.graph[j][i]
+        self.mirror_diagonal()
         print(np.matrix(self.graph))
 
     def show_graph(self):
@@ -53,7 +58,7 @@ class Graph(object):
         plt.show()
 
     # function determines the neighbors of a given vertex
-    def N(self,vertex):
+    def neighbours(self,vertex):
         c = 0
         l = []
         for i in self.graph[vertex]:
@@ -61,6 +66,9 @@ class Graph(object):
                 l.append(c)
             c += 1
         return l
+
+    def degree(self,vertex):
+        return len(self.neighbours(vertex))-1
 
 #the Bron-Kerbosch recursive algorithm
 # not working yet
