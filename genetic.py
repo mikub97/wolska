@@ -1,24 +1,23 @@
 import random
 import itertools
+
+from networkx import connected_components, Graph
+
 from graph_utils import *
 import numpy as np
 
-
-n = 10
-p=0.4
-n_iter = 30;
-
 class GeneticAlgorithm():
 
-    POP_SIZE = 100;
-    P_MUT = 0.15
+    n_iter= 100;
+    POP_SIZE = 50 ;
+    P_MUT = 0.2 ;
 
     def __init__(self,graph): #initialization of algorithm
         self.graph = graph
         self.vert_n = len(graph.nodes)
         self.population = []
         self.population2= []
-        self.best = (-1,-1,[]) # generation, value(aim), genotype
+        self.best = (-1,- float("inf"),[],[]) # generation, value(aim),nodes in clique,genotype
 
     # Generowanie LOSOWEJ POPULACJI
     # można rozważyć inne opcje, np.
@@ -29,40 +28,52 @@ class GeneticAlgorithm():
             population.append(list(np.random.randint(2, size=self.vert_n)))
         return population
 
+
+    ## to do with greedy algorithm
+    # def not_random_population_init(self):
+    #     population = []
+    #     comp =connected_components(self.graph)
+    #     for c in comp:
+    #         print(c)
+
     # Jak na ten moment funkcja celu jest banalna i... chyba nie dokońca dobrze napisana.
     # Jest to punkty krytyczny
     # Teraz, sprawdzam połączenia pomiędzy każdym z węzłów potencalnego rozwiązania,
     # jeśli dane połączenie (Edge w graphie) istnieje dodaje 100 "punktów", jeśli nie istnieje
     # odejmuje.
-    #                               TO DO !!!
+    #               TO DO !!!
     #[0,1,2,3,4,5,6,7,8,9], [0, 0, 0, 1, 0, 1, 1, 1, 0, 0] -- > [3,5,6,7]
-    def aim(self,genotype):
-        result = 0.0
-        nodes = self.genotype_to_nodes(genotype)
-        comb = list(itertools.combinations(nodes,2))
-        for c in comb:
-            if (g.has_edge(c[0],c[1])):
-                result+=100
-            # else:
-            #     result-=100
-        return result
+    # def aim(self,genotype):
+        # result = 0.0
+        # nodes = self.genotype_to_nodes(genotype)
+        # comb = list(itertools.combinations(nodes,2))
+        # for c in comb:
+        #     if (g.has_edge(c[0],c[1])):
+        #         result+=100
+        #     # else:
+        #     #     result-=100
+        # return result
+
+
+
 
     # ewaluacja populacji, zwracana jest tablica ocen - wart. funkcji celu, dla każdego z osobnika
     # indeksy zwróconej tablicy res, odpowiadają indeksom odpowiednich osobników w populacji
     # dodatkowo zwracany jest indeks najlepszego osobnika w danej populacji oraz jego wartość celu
-    def evaluate(self,population):
+    def evaluate(self,population,iter):
         res = []
-        best_aim = - float("inf")
-        best_index = -1
         i = 0
+        was_best_changed= False
         for g in population:
-            aim = self.aim(g)
-            if (aim>best_aim):
-                best_aim = aim
-                best_index=i
-            res.append(self.aim(g))
-            i=i+1
-        return (best_index,best_aim,res);
+            # AIM < -- FUNKCJA CELU
+            extracted_clique = list(self.clique_extraction(g).nodes)
+            res.append(len(extracted_clique))
+            if len(extracted_clique)>self.best[1]:      #self.best[generation, value(aim),nodes in clique,genotype]
+                self.best = [iter,len(extracted_clique),extracted_clique,g]
+                was_best_changed=True
+        if was_best_changed:
+            self.report_best()
+        return res;
 
     # Selekcja turniejowa turniej k - osobnikowy (k=2)
     def select(self,population, evaluation_results, k=2):
@@ -98,20 +109,14 @@ class GeneticAlgorithm():
     # TO DO sukcesja generacyjna ??
     def start(self):
         self.population = self.random_population_init()
-        # 3 węzły w grafie i 3 osobnika w populacji
-        (best_index,best_val, eval_res) = self.evaluate(self.population)
-
-        for t in range(n_iter):
-            if best_val > self.best[1]:
-                self.best = (t, best_val, self.population[best_index])
+        eval_res = self.evaluate(self.population,0)
+        for t in range(self.n_iter):
             self.population2 = self.select(self.population,eval_res)
             self.population2 = self.mutate(self.population2)
-            (best_index,best_val,eval_res) = self.evaluate(self.population2)
+            eval_res = self.evaluate(self.population2,t+1)
             self.population = self.population2
 
-
     # Funkcja, która zwraca liste node'ów należących do danego rozwiązania
-    # [0, 0, 0, 1, 0, 1, 1, 1, 0, 0] -- > [3,5,6,7]
     def genotype_to_nodes(self, genotype):
         nodes = []
         for i in range(len(genotype)):
@@ -119,36 +124,36 @@ class GeneticAlgorithm():
                 nodes.append(i)
         return nodes
 
-    # rysuje graf, jeśli podano argument to ten z argumentu, jeśli nie podano to ten zdefiniowany w konstr.
-    def draw_graph(self, g= None):
-        if g !=None:
-            nx.draw(g, node_size=900, with_labels=True)
-        else:
-            nx.draw(self.graph,node_size=900, with_labels=True)
-        plt.show()
+    def genotype_to_graph(self,genotype):
+        g = Graph()
+        nodes = self.genotype_to_nodes(genotype)
+        g.add_nodes_from(nodes)
+        for e in list(itertools.combinations(nodes,2)):
+            if self.graph.has_edge(e[0],e[1]):
+                g.add_edge(e[0],e[1])
+        return g
 
+    # reports current best
+    def report_best(self):
+        print("------------------------ ITERATION NR. ",self.best[0]," ---------------------------")
+        print(" [generation , value (aim) ,  nodes_in_clique , genotype] - > ",self.best)
+        draw(g,"best from iteration "+str(self.best[0]),self.best[2])
+
+
+    def clique_extraction(self,genotype):
+        g = self.genotype_to_graph(genotype)
+        while (not is_clique(g)):
+            smallest_degree_nodes = find_smallest_degree_nodes(g)
+            g.remove_node(smallest_degree_nodes[(random.randint(0, len(smallest_degree_nodes)-1))][0]);
+        return g
 
 
 if __name__ == '__main__':
+    random.seed(3)
+    n=100     # ilość węzłów
+    p= 0.4    # ile chcesz zostawić krawędzi
     g = generateGraph(n,p)
     ag = GeneticAlgorithm(g)
-    # ag.draw_graph()
     ag.start()
-    ag.draw_graph()
-    print("alg. g. best - >",ag.best)
-    print("best best.->",max_clique(g).nodes)
-    nodes = ag.genotype_to_nodes(ag.best[2])
-    sub = g.subgraph(nodes)
-    ag.draw_graph(sub)
+    report_real_max_clique(g)
 
-
-# t=0
-# stop = False
-# eval_result = evaluate(population)
-# while(not stop):
-#     select(eval_result,population)
-#     cross()
-#     mutate()
-#     t+=1;
-#     if t>20 or (False):     ## przemyśleć inne warunki stopu
-#         stop = True
